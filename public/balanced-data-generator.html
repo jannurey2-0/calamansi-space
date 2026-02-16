@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Balanced Data Generator | Calamansi Yield System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-green-50 to-lime-50 min-h-screen">
+    <div class="container mx-auto px-4 py-8 max-w-4xl">
+        <div class="bg-white rounded-2xl shadow-xl overflow-hidden">
+            <!-- Header -->
+            <div class="bg-gradient-to-r from-lime-600 to-green-600 p-6">
+                <h1 class="text-2xl font-bold text-white flex items-center gap-3">
+                    <i class="fa-solid fa-balance-scale"></i>
+                    Balanced Data Generator
+                </h1>
+                <p class="text-lime-100 mt-2">Generate balanced training data for ML model improvement</p>
+            </div>
+
+            <!-- Main Content -->
+            <div class="p-6">
+                <!-- Quick Actions -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+                    <button id="generate-balanced-full-btn" 
+                            class="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-semibold py-4 px-6 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 flex flex-col items-center">
+                        <i class="fa-solid fa-seedling text-2xl mb-2"></i>
+                        <span>Full Balanced Dataset</span>
+                        <span class="text-sm opacity-90 mt-1">90 days sensor + 20 yield records</span>
+                    </button>
+
+                    <button id="generate-balanced-training-btn" 
+                            class="bg-gradient-to-r from-blue-500 to-cyan-600 hover:from-blue-600 hover:to-cyan-700 text-white font-semibold py-4 px-6 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 flex flex-col items-center">
+                        <i class="fa-solid fa-chart-network text-2xl mb-2"></i>
+                        <span>Train ML Model After</span>
+                        <span class="text-sm opacity-90 mt-1">Auto-train after generation</span>
+                    </button>
+                </div>
+
+                <!-- Custom Generator -->
+                <div class="bg-slate-50 rounded-xl p-6 mb-8">
+                    <h2 class="text-lg font-semibold text-slate-800 mb-4 flex items-center gap-2">
+                        <i class="fa-solid fa-sliders"></i>
+                        Custom Balanced Generation
+                    </h2>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 mb-2">Sensor Days</label>
+                            <input type="number" id="sensor-days" value="60" min="15" max="180" 
+                                   class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-lime-500 focus:border-transparent">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 mb-2">Yield Records</label>
+                            <input type="number" id="yield-count" value="15" min="5" max="50" 
+                                   class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-lime-500 focus:border-transparent">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 mb-2">Records/Day</label>
+                            <input type="number" id="records-per-day" value="6" min="1" max="24" 
+                                   class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-lime-500 focus:border-transparent">
+                        </div>
+                    </div>
+                    <button id="generate-custom-balanced-btn" 
+                            class="mt-4 w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-semibold py-3 px-6 rounded-lg transition-all duration-300">
+                        <i class="fa-solid fa-gear mr-2"></i>
+                        Generate Custom Balanced Dataset
+                    </button>
+                </div>
+
+                <!-- Status Panel -->
+                <div class="bg-white border border-slate-200 rounded-xl p-6">
+                    <h2 class="text-lg font-semibold text-slate-800 mb-4 flex items-center gap-2">
+                        <i class="fa-solid fa-circle-info"></i>
+                        Generation Status
+                    </h2>
+                    <div id="status-messages" class="space-y-3 max-h-64 overflow-y-auto">
+                        <div class="text-slate-500 italic">Ready to generate balanced data...</div>
+                    </div>
+                </div>
+
+                <!-- Info Section -->
+                <div class="mt-6 bg-blue-50 border border-blue-200 rounded-xl p-4">
+                    <h3 class="font-semibold text-blue-800 mb-2 flex items-center gap-2">
+                        <i class="fa-solid fa-lightbulb"></i>
+                        About Balanced Data
+                    </h3>
+                    <ul class="text-sm text-blue-700 space-y-1">
+                        <li>• <strong>40% Optimal</strong>: Conditions close to ideal ranges</li>
+                        <li>• <strong>30% Good</strong>: Slightly off-ideal but productive</li>
+                        <li>• <strong>20% Moderate</strong>: Challenging but manageable conditions</li>
+                        <li>• <strong>10% Challenging</strong>: Difficult conditions with lower yields</li>
+                        <li>• This balance helps prevent model overfitting to any single condition type</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Footer Info -->
+            <div class="bg-slate-50 p-4 border-t border-slate-200">
+                <div class="text-center text-sm text-slate-600">
+                    <p class="mb-2">📊 Data will be saved to your Firebase collections:</p>
+                    <div class="flex flex-wrap justify-center gap-4 text-xs">
+                        <span class="bg-lime-100 text-lime-800 px-2 py-1 rounded">dataCollectionSensor</span>
+                        <span class="bg-blue-100 text-blue-800 px-2 py-1 rounded">farm_history</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        // Import required modules
+        import { app } from './firebase-config.js';
+        import balancedDataGenerator from './js/balanced-data-generator.js';
+
+        // DOM Elements
+        const generateBalancedFullBtn = document.getElementById('generate-balanced-full-btn');
+        const generateBalancedTrainingBtn = document.getElementById('generate-balanced-training-btn');
+        const generateCustomBalancedBtn = document.getElementById('generate-custom-balanced-btn');
+        const statusMessages = document.getElementById('status-messages');
+
+        // Add status message
+        function addStatusMessage(message, isSuccess = true, isBold = false) {
+            const messageEl = document.createElement('div');
+            messageEl.className = `p-3 rounded-lg ${isSuccess ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'}`;
+            messageEl.innerHTML = `
+                <div class="${isBold ? 'font-semibold' : ''} ${isSuccess ? 'text-green-800' : 'text-red-800'}">
+                    ${message}
+                </div>
+            `;
+            statusMessages.appendChild(messageEl);
+            statusMessages.scrollTop = statusMessages.scrollHeight;
+        }
+
+        // Clear status messages
+        function clearStatus() {
+            statusMessages.innerHTML = '';
+        }
+
+        // Update button state
+        function setButtonState(button, isLoading, text) {
+            if (isLoading) {
+                button.disabled = true;
+                button.innerHTML = `<i class="fa-solid fa-spinner fa-spin mr-2"></i>${text}`;
+            } else {
+                button.disabled = false;
+                // Reset button text based on ID
+                switch(button.id) {
+                    case 'generate-balanced-full-btn':
+                        button.innerHTML = '<i class="fa-solid fa-seedling text-2xl mb-2"></i><span>Full Balanced Dataset</span><span class="text-sm opacity-90 mt-1">90 days sensor + 20 yield records</span>';
+                        break;
+                    case 'generate-balanced-training-btn':
+                        button.innerHTML = '<i class="fa-solid fa-chart-network text-2xl mb-2"></i><span>Train ML Model After</span><span class="text-sm opacity-90 mt-1">Auto-train after generation</span>';
+                        break;
+                    case 'generate-custom-balanced-btn':
+                        button.innerHTML = '<i class="fa-solid fa-gear mr-2"></i>Generate Custom Balanced Dataset';
+                        break;
+                }
+            }
+        }
+
+        // Event Listeners
+        generateBalancedFullBtn.addEventListener('click', async () => {
+            clearStatus();
+            setButtonState(generateBalancedFullBtn, true, 'Generating Balanced Dataset...');
+            addStatusMessage('🌱 Starting balanced training data generation...', true, true);
+
+            try {
+                const result = await balancedDataGenerator.generateBalancedTrainingDataset();
+                addStatusMessage(`✅ Success! Generated ${result.sensorRecords} sensor records and ${result.yieldRecords} yield records`, true, true);
+                addStatusMessage('🤖 Your ML model now has better balanced training data!', true, true);
+            } catch (error) {
+                addStatusMessage(`❌ Error: ${error.message}`, false, true);
+            } finally {
+                setButtonState(generateBalancedFullBtn, false);
+            }
+        });
+
+        generateBalancedTrainingBtn.addEventListener('click', async () => {
+            clearStatus();
+            setButtonState(generateBalancedTrainingBtn, true, 'Generating & Training...');
+            addStatusMessage('🌱 Generating balanced data and preparing for training...', true, true);
+
+            try {
+                const result = await balancedDataGenerator.generateBalancedTrainingDataset();
+                addStatusMessage(`✅ Generated ${result.sensorRecords} sensor records and ${result.yieldRecords} yield records`, true, true);
+                
+                // Try to train the ML model if available
+                if (window.mlModel) {
+                    addStatusMessage('🔄 Training ML model with new balanced data...', true);
+                    const trainSuccess = await window.mlModel.train();
+                    if (trainSuccess) {
+                        addStatusMessage('✅ ML Model retrained successfully with balanced data!', true, true);
+                    } else {
+                        addStatusMessage('⚠️ ML Model training completed but may need more data', true);
+                    }
+                } else {
+                    addStatusMessage('ℹ️ ML model not found on window - train separately', true);
+                }
+            } catch (error) {
+                addStatusMessage(`❌ Error: ${error.message}`, false, true);
+            } finally {
+                setButtonState(generateBalancedTrainingBtn, false);
+            }
+        });
+
+        generateCustomBalancedBtn.addEventListener('click', async () => {
+            const days = parseInt(document.getElementById('sensor-days').value) || 60;
+            const count = parseInt(document.getElementById('yield-count').value) || 15;
+            const recordsPerDay = parseInt(document.getElementById('records-per-day').value) || 6;
+            
+            setButtonState(generateCustomBalancedBtn, true, 'Generating Custom Data...');
+            addStatusMessage(`⚙️ Generating custom balanced dataset: ${days} days sensor data + ${count} yield records`, true, true);
+
+            try {
+                // Generate both datasets
+                addStatusMessage(`🌡️ Generating ${days} days of balanced sensor data...`, true);
+                const sensorResult = await balancedDataGenerator.generateBalancedSensorData(days, recordsPerDay);
+                
+                addStatusMessage(`🌾 Generating ${count} balanced yield records...`, true);
+                const yieldResult = await balancedDataGenerator.generateBalancedYieldHistory(count);
+                
+                addStatusMessage(`✅ Custom balanced dataset complete!`, true, true);
+                addStatusMessage(`📊 Sensor Records: ${sensorResult}`, true);
+                addStatusMessage(`📊 Yield Records: ${yieldResult}`, true);
+                
+                // Try to train the ML model if available
+                if (window.mlModel) {
+                    addStatusMessage('🔄 Training ML model with new balanced data...', true);
+                    const trainSuccess = await window.mlModel.train();
+                    if (trainSuccess) {
+                        addStatusMessage('✅ ML Model retrained successfully with balanced data!', true, true);
+                    } else {
+                        addStatusMessage('⚠️ ML Model training completed but may need more data', true);
+                    }
+                }
+            } catch (error) {
+                addStatusMessage(`❌ Error: ${error.message}`, false, true);
+            } finally {
+                setButtonState(generateCustomBalancedBtn, false);
+            }
+        });
+
+        // Initialize
+        addStatusMessage('🌱 Balanced Data Generator Ready', true, true);
+        addStatusMessage('Click any button above to start generating balanced training data for your ML model');
+        addStatusMessage('💡 Balanced data includes optimal, good, moderate, and challenging conditions for robust training');
+    </script>
+</body>
+</html>
