@@ -214,6 +214,7 @@ const app = {
                     document.getElementById('f-soil').innerText = f.Soil_type || 'N/A';
                     document.getElementById('f-flower').innerText = f.floweringDate || 'N/A';
                     document.getElementById('f-harvest').innerText = f.estimatedHarvest || 'N/A';
+                    document.getElementById('f-trees').innerText = f.numberOfTrees || 'N/A';
                     document.getElementById('f-practice').innerText = f.FertilizerPractice || 'N/A';
                     
                     if(document.getElementById('f-size')) document.getElementById('f-size').innerText = f.Farm_size || 'N/A';
@@ -221,7 +222,7 @@ const app = {
                     if(document.getElementById('f-irrigation')) document.getElementById('f-irrigation').innerText = f.irrigation_type || 'N/A';
                     if(document.getElementById('f-yield')) document.getElementById('f-yield').innerText = f.currentYield || 'N/A';
                 } else {
-                    const farmFields = ['f-locations', 'f-variety', 'f-age', 'f-prod', 'f-soil', 'f-flower', 'f-harvest', 'f-practice'];
+                    const farmFields = ['f-locations', 'f-variety', 'f-age', 'f-prod', 'f-soil', 'f-flower', 'f-harvest', 'f-trees', 'f-practice'];
                     farmFields.forEach(id => {
                         const el = document.getElementById(id);
                         if(el) el.innerText = "No record Found";
