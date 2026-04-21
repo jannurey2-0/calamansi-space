@@ -135,6 +135,64 @@
                         <p class="text-slate-600">Manage your yield data and submit requests to the admin.</p>
                     </div>
 
+                    <!-- Weather & Recommendations Panel -->
+                    <div id="weather-panel" class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="flex items-center gap-3">
+                                <div class="w-8 h-8 rounded-full bg-sky-100 text-sky-600 flex items-center justify-center">
+                                    <i class="fa-solid fa-cloud-sun text-sm"></i>
+                                </div>
+                                <div>
+                                    <h3 class="text-lg font-bold text-slate-800">Weather & Farm Alerts</h3>
+                                    <p class="text-xs text-slate-500">Powered by AccuWeather + Agronomic Rules</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <span id="weather-loading" class="text-xs text-slate-400">
+                                    <i class="fa-solid fa-circle-notch fa-spin mr-1"></i>Loading...
+                                </span>
+                                <span id="weather-source" class="hidden text-xs px-2 py-1 rounded-full bg-slate-100 text-slate-500"></span>
+                            </div>
+                        </div>
+
+                        <!-- Weather Metrics Row -->
+                        <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
+                            <div class="text-center p-3 rounded-xl bg-slate-50 border border-slate-100">
+                                <div class="text-2xl mb-1" id="weather-icon">🌤️</div>
+                                <div class="text-lg font-bold text-slate-800" id="weather-temp">--°C</div>
+                                <div class="text-xs text-slate-500" id="weather-desc">--</div>
+                            </div>
+                            <div class="text-center p-3 rounded-xl bg-slate-50 border border-slate-100">
+                                <div class="text-sky-500 text-xl mb-1"><i class="fa-solid fa-droplet"></i></div>
+                                <div class="text-lg font-bold text-slate-800" id="weather-humidity">--%</div>
+                                <div class="text-xs text-slate-500">Humidity</div>
+                            </div>
+                            <div class="text-center p-3 rounded-xl bg-slate-50 border border-slate-100">
+                                <div class="text-teal-500 text-xl mb-1"><i class="fa-solid fa-wind"></i></div>
+                                <div class="text-lg font-bold text-slate-800" id="weather-wind">--</div>
+                                <div class="text-xs text-slate-500">km/h</div>
+                            </div>
+                            <div class="text-center p-3 rounded-xl bg-slate-50 border border-slate-100">
+                                <div class="text-amber-500 text-xl mb-1"><i class="fa-solid fa-sun"></i></div>
+                                <div class="text-lg font-bold text-slate-800" id="weather-uv">--</div>
+                                <div class="text-xs text-slate-500" id="weather-uv-text">UV Index</div>
+                            </div>
+                            <div class="text-center p-3 rounded-xl bg-slate-50 border border-slate-100">
+                                <div class="text-purple-500 text-xl mb-1"><i class="fa-solid fa-eye"></i></div>
+                                <div class="text-lg font-bold text-slate-800" id="weather-visibility">--</div>
+                                <div class="text-xs text-slate-500">km visibility</div>
+                            </div>
+                        </div>
+
+                        <!-- Recommendation Alerts -->
+                        <div id="recommendations-container" class="space-y-3">
+                            <div class="text-center py-6 text-slate-400 bg-slate-50 rounded-xl border border-slate-100">
+                                <i class="fa-solid fa-leaf text-2xl mb-2"></i>
+                                <p class="text-sm">Weather recommendations will appear here</p>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- Sensor Reading Cards -->
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                         

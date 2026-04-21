@@ -65,6 +65,17 @@ node_modules/
 # dotenv environment variables file
 .env
 
+# Firebase secrets local file
+.secret.local
+
 # dataconnect generated files
 .dataconnect
-*.json
+
+# Root package files (not needed for static site)
+package.json
+package-lock.json
+
+# Allow important config JSON files
+!.firebaserc
+!firebase.json
+!functions/package.json
