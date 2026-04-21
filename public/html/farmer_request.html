@@ -178,6 +178,25 @@
         </div>
     </main>
 
+    <!-- Delete Confirmation Modal -->
+    <div id="deleteConfirmModal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm opacity-0 pointer-events-none transition-all duration-300">
+        <div class="bg-white rounded-2xl w-full max-w-sm mx-4 shadow-2xl transform scale-95 transition-transform duration-300 p-6 text-center">
+            <div class="w-14 h-14 rounded-full bg-red-100 text-red-600 flex items-center justify-center text-2xl mx-auto mb-4">
+                <i class="fa-solid fa-trash-can"></i>
+            </div>
+            <h3 class="font-bold text-slate-800 text-lg mb-2">Delete Request?</h3>
+            <p class="text-slate-500 text-sm mb-6">This action cannot be undone. The request will be permanently removed from the system.</p>
+            <div class="flex gap-3">
+                <button onclick="closeDeleteModal()" class="flex-1 px-4 py-2 text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl font-medium transition">
+                    Cancel
+                </button>
+                <button id="confirmDeleteBtn" class="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl font-medium transition">
+                    Delete
+                </button>
+            </div>
+        </div>
+    </div>
+
     <div id="requestModal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm opacity-0 pointer-events-none transition-all duration-300">
         <div class="bg-white rounded-2xl w-full max-w-lg mx-4 shadow-2xl transform scale-95 transition-transform duration-300">
             <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50 rounded-t-2xl">
@@ -239,6 +258,7 @@
             where,
             getDocs,
             updateDoc,
+            deleteDoc,
             serverTimestamp
         } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-firestore.js";
 
@@ -351,6 +371,9 @@
                         <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                             <button onclick="openRequestModal('${request.farmerName}', '${yieldAmount} kg', \`${(request.notes || 'No notes provided').replace(/`/g, '\\`')}\`, '${request.id}', '${request.status || 'pending'}', '${request.harvestDate}')" class="text-lime-600 hover:text-lime-900 mr-3">
                                 <i class="fa-solid fa-eye"></i>
+                            </button>
+                            <button onclick="confirmDeleteRequest('${request.id}')" class="text-red-500 hover:text-red-700">
+                                <i class="fa-solid fa-trash"></i>
                             </button>
                         </td>
                     </tr>
@@ -516,6 +539,53 @@
         // Close modal on clicking outside
         document.getElementById('requestModal').addEventListener('click', (e) => {
             if (e.target === document.getElementById('requestModal')) window.closeRequestModal();
+        });
+
+        // Delete request functions
+        let requestIdToDelete = null;
+
+        window.confirmDeleteRequest = (requestId) => {
+            requestIdToDelete = requestId;
+            const modal = document.getElementById('deleteConfirmModal');
+            const modalContent = modal.querySelector('div');
+            modal.classList.remove('opacity-0', 'pointer-events-none');
+            modalContent.classList.remove('scale-95');
+            modalContent.classList.add('scale-100');
+        };
+
+        window.closeDeleteModal = () => {
+            const modal = document.getElementById('deleteConfirmModal');
+            const modalContent = modal.querySelector('div');
+            modal.classList.add('opacity-0', 'pointer-events-none');
+            modalContent.classList.remove('scale-100');
+            modalContent.classList.add('scale-95');
+            requestIdToDelete = null;
+        };
+
+        document.getElementById('deleteConfirmModal').addEventListener('click', (e) => {
+            if (e.target === document.getElementById('deleteConfirmModal')) window.closeDeleteModal();
+        });
+
+        document.getElementById('confirmDeleteBtn').addEventListener('click', async () => {
+            if (!requestIdToDelete) return;
+            
+            const btn = document.getElementById('confirmDeleteBtn');
+            const originalText = btn.textContent;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i>Deleting...';
+            btn.disabled = true;
+            
+            try {
+                await deleteDoc(doc(db, "yield_requests", requestIdToDelete));
+                window.closeDeleteModal();
+                await loadRequests();
+                alert('Request deleted successfully!');
+            } catch (error) {
+                console.error('Error deleting request:', error);
+                alert('Error deleting request. Please try again.');
+            } finally {
+                btn.textContent = originalText;
+                btn.disabled = false;
+            }
         });
     </script>
 

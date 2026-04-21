@@ -376,6 +376,9 @@
                             <button onclick="openYieldDetailsModal('${record.id}', ${JSON.stringify(record).replace(/'/g, "\\'")})" class="text-lime-600 hover:text-lime-900 mr-3">
                                 <i class="fa-solid fa-eye"></i>
                             </button>
+                            <button onclick="confirmDeleteYield('${record.id}')" class="text-red-500 hover:text-red-700">
+                                <i class="fa-solid fa-trash"></i>
+                            </button>
                         </td>
                     </tr>
                 `;
@@ -500,7 +503,7 @@
             }
             
             try {
-                await deleteDoc(doc(db, "yield_records", window.currentRecordId));
+                await deleteDoc(doc(db, "yield_requests", window.currentRecordId));
                 closeYieldModal();
                 await loadYieldRecords();
                 alert('Yield record deleted successfully!');
@@ -510,9 +513,125 @@
             }
         };
 
+        // Export data to CSV
+        window.app.exportData = () => {
+            if (!allYieldRecords || allYieldRecords.length === 0) {
+                alert('No data available to export.');
+                return;
+            }
+
+            const now = new Date();
+            const dateStr = now.toLocaleDateString();
+            const timeStr = now.toLocaleTimeString();
+
+            // Calculate summary stats
+            const totalWeight = allYieldRecords.reduce((sum, item) => {
+                const val = parseFloat((item.yieldAmount || item.harvestYield || '0').toString().replace(/[^\d.-]/g, ''));
+                return sum + (isNaN(val) ? 0 : val);
+            }, 0);
+            const avgWeight = totalWeight / allYieldRecords.length;
+            const gradeACount = allYieldRecords.filter(r => r.quality === 'Grade A').length;
+            const gradeBCount = allYieldRecords.filter(r => r.quality === 'Grade B').length;
+            const gradeCCount = allYieldRecords.filter(r => r.quality === 'Grade C').length;
+
+            const headers = ['Date', 'Batch ID', 'Farmer', 'Weight (kg)', 'Quality', 'Status'];
+            const rows = allYieldRecords.map(item => {
+                const harvestDate = new Date(item.harvestDate || item.date || '');
+                const formattedDate = isNaN(harvestDate.getTime()) ? 'N/A' : harvestDate.toLocaleDateString();
+                const yieldValue = item.yieldAmount || item.harvestYield || '0';
+                const numericValue = parseFloat(yieldValue.toString().replace(/[^\d.-]/g, ''));
+                return [
+                    formattedDate,
+                    `"${(item.batchId || item.batch_id || 'N/A').toString().replace(/"/g, '""')}"`,
+                    `"${(item.farmerName || item.FarmerName || 'N/A').toString().replace(/"/g, '""')}"`,
+                    isNaN(numericValue) ? '0' : numericValue.toFixed(2),
+                    item.quality || 'N/A',
+                    (item.status || 'Pending').toUpperCase()
+                ].join(',');
+            });
+
+            const csvContent = [
+                'Calamansi Yield System - Harvest Logs Export',
+                `Exported on: ${dateStr} at ${timeStr}`,
+                `Total Records: ${allYieldRecords.length}`,
+                '',
+                headers.join(','),
+                ...rows,
+                '',
+                'SUMMARY',
+                `Total Weight (kg),${totalWeight.toFixed(2)}`,
+                `Average Weight (kg),${avgWeight.toFixed(2)}`,
+                `Grade A Count,${gradeACount}`,
+                `Grade B Count,${gradeBCount}`,
+                `Grade C Count,${gradeCCount}`
+            ].join('\n');
+
+            // Add BOM for Excel UTF-8 compatibility
+            const BOM = '\uFEFF';
+            const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            link.setAttribute('href', url);
+            link.setAttribute('download', `CYS_HarvestLogs_${now.toISOString().split('T')[0]}.csv`);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        };
+
+        // Row-level delete functions
+        let yieldIdToDelete = null;
+
+        window.confirmDeleteYield = (yieldId) => {
+            yieldIdToDelete = yieldId;
+            const modal = document.getElementById('deleteConfirmModal');
+            const modalContent = modal.querySelector('div');
+            modal.classList.remove('hidden', 'opacity-0');
+            modalContent.classList.remove('scale-95');
+            modalContent.classList.add('scale-100');
+        };
+
+        window.closeDeleteYieldModal = () => {
+            const modal = document.getElementById('deleteConfirmModal');
+            const modalContent = modal.querySelector('div');
+            modal.classList.add('opacity-0');
+            modalContent.classList.remove('scale-100');
+            modalContent.classList.add('scale-95');
+            setTimeout(() => {
+                modal.classList.add('hidden');
+            }, 300);
+            yieldIdToDelete = null;
+        };
+
+        document.getElementById('confirmDeleteYieldBtn').addEventListener('click', async () => {
+            if (!yieldIdToDelete) return;
+            
+            const btn = document.getElementById('confirmDeleteYieldBtn');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i>Deleting...';
+            btn.disabled = true;
+            
+            try {
+                await deleteDoc(doc(db, "yield_requests", yieldIdToDelete));
+                window.closeDeleteYieldModal();
+                await loadYieldRecords();
+                alert('Yield record deleted successfully!');
+            } catch (error) {
+                console.error('Error deleting yield record:', error);
+                alert('Error deleting yield record. Please try again.');
+            } finally {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }
+        });
+
         // Close modal on clicking outside
         document.getElementById('detailsModal').addEventListener('click', (e) => {
             if (e.target === document.getElementById('detailsModal')) window.closeYieldModal();
+        });
+
+        document.getElementById('deleteConfirmModal').addEventListener('click', (e) => {
+            if (e.target === document.getElementById('deleteConfirmModal')) window.closeDeleteYieldModal();
         });
 
         // Function to show error messages
@@ -529,6 +648,25 @@
         }
     </script>
     
+
+    <!-- Delete Confirmation Modal -->
+    <div id="deleteConfirmModal" class="fixed inset-0 z-50 hidden bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 opacity-0 transition-opacity duration-300">
+        <div class="bg-white w-full max-w-sm rounded-2xl shadow-2xl transform scale-95 transition-transform duration-300 p-6 text-center relative">
+            <div class="w-14 h-14 rounded-full bg-red-100 text-red-600 flex items-center justify-center text-2xl mx-auto mb-4">
+                <i class="fa-solid fa-trash-can"></i>
+            </div>
+            <h3 class="font-bold text-slate-800 text-lg mb-2">Delete Yield Record?</h3>
+            <p class="text-slate-500 text-sm mb-6">This action cannot be undone. The record will be permanently removed from the system.</p>
+            <div class="flex gap-3">
+                <button onclick="closeDeleteYieldModal()" class="flex-1 px-4 py-2 text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl font-medium transition">
+                    Cancel
+                </button>
+                <button id="confirmDeleteYieldBtn" class="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl font-medium transition">
+                    Delete
+                </button>
+            </div>
+        </div>
+    </div>
 
     <!-- Add Yield Record Modal -->
     <div id="addYieldModal" class="fixed inset-0 z-50 hidden bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 opacity-0 transition-opacity duration-300">
