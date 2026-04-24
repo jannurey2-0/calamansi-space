@@ -63,17 +63,18 @@ async function fetchAccuWeather(locationKey, apiKey) {
 
 /**
  * Helper: Get cached weather or null
+ * staleAllowed = true returns expired cache as fallback
  */
-async function getCachedWeather(locationKey) {
+async function getCachedWeather(locationKey, staleAllowed = false) {
   const docRef = db.collection(CACHE_COLLECTION).doc(locationKey);
   const doc = await docRef.get();
   if (!doc.exists) return null;
 
   const data = doc.data();
   const age = Date.now() - data.timestamp.toMillis();
-  if (age > CACHE_TTL_MS) return null;
+  if (age > CACHE_TTL_MS && !staleAllowed) return null;
 
-  return data;
+  return { ...data, stale: age > CACHE_TTL_MS };
 }
 
 /**
@@ -162,22 +163,34 @@ exports.getRecommendations = onRequest(
         return;
       }
 
-      // 1. Get weather data (cache first, then API)
+      // 1. Get weather data (cache first, then API, then stale cache as fallback)
       let weatherData;
       let weatherSource;
       const cached = await getCachedWeather(locationKey);
       if (cached) {
         weatherData = cached.data;
-        weatherSource = "cache";
+        weatherSource = cached.stale ? "stale_cache" : "cache";
       } else {
         const apiKey = process.env.ACCUWEATHER_API_KEY;
         if (!apiKey) {
           res.status(500).json({error: "API key not configured"});
           return;
         }
-        weatherData = await fetchAccuWeather(locationKey, apiKey);
-        await saveWeatherCache(locationKey, weatherData);
-        weatherSource = "api";
+        try {
+          weatherData = await fetchAccuWeather(locationKey, apiKey);
+          await saveWeatherCache(locationKey, weatherData);
+          weatherSource = "api";
+        } catch (apiError) {
+          // Fallback to stale cache if API fails
+          const staleCached = await getCachedWeather(locationKey, true);
+          if (staleCached) {
+            logger.warn("AccuWeather API failed, returning stale cache:", apiError.message);
+            weatherData = staleCached.data;
+            weatherSource = "stale_cache";
+          } else {
+            throw apiError;
+          }
+        }
       }
 
       // 2. Load rules and evaluate
