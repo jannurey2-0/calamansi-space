@@ -14,7 +14,7 @@ admin.initializeApp();
 const db = getFirestore();
 const CACHE_COLLECTION = "weather_cache";
 const RULES_COLLECTION = "agronomic_rules";
-const CACHE_TTL_MS = 30 * 60 * 1000; // 30 minutes
+const CACHE_TTL_MS = 3 * 60 * 60 * 1000; // 3 hours — farming weather doesn't need minute-by-minute updates
 
 /**
  * Helper: Seed default rules into Firestore if collection is empty
@@ -50,15 +50,34 @@ async function loadRules() {
 }
 
 /**
- * Helper: Fetch weather from AccuWeather API
+ * In-flight request deduplication — prevents thundering herd
+ */
+const inFlightRequests = new Map();
+
+/**
+ * Helper: Fetch weather from AccuWeather API (with deduplication)
  */
 async function fetchAccuWeather(locationKey, apiKey) {
-  const url = `http://dataservice.accuweather.com/currentconditions/v1/${locationKey}?apikey=${apiKey}&details=true`;
-  const response = await fetch(url);
-  if (!response.ok) {
-    throw new Error(`AccuWeather API error: ${response.status} ${response.statusText}`);
+  const cacheKey = `${locationKey}`;
+  if (inFlightRequests.has(cacheKey)) {
+    return inFlightRequests.get(cacheKey);
   }
-  return response.json();
+
+  const promise = (async () => {
+    try {
+      const url = `https://dataservice.accuweather.com/currentconditions/v1/${locationKey}?apikey=${apiKey}&details=true`;
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`AccuWeather API error: ${response.status} ${response.statusText}`);
+      }
+      return await response.json();
+    } finally {
+      inFlightRequests.delete(cacheKey);
+    }
+  })();
+
+  inFlightRequests.set(cacheKey, promise);
+  return promise;
 }
 
 /**

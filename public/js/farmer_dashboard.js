@@ -23,7 +23,7 @@ const db = getFirestore(app);
 const SENSOR_CACHE_KEY = 'calamansi_farmer_sensors';
 const CHART_CACHE_KEY = 'calamansi_farmer_chart_cache';
 const WEATHER_CACHE_KEY = 'calamansi_weather_cache';
-const WEATHER_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes frontend cache
+const WEATHER_CACHE_TTL_MS = 30 * 60 * 1000; // 30 minutes frontend cache
 
 const FUNCTIONS_BASE_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
     ? 'http://127.0.0.1:5001/calamansisys/us-central1'
