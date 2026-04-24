@@ -222,6 +222,8 @@ class FarmerDashboardApp extends SensorDashboardBase {
             `;
         }).join('');
     }
+
+
 }
 
 // ------------------------------------------------------------------
