@@ -440,24 +440,15 @@ class YieldPredictionModel {
     // Make prediction based on current sensor data
     predict(currentSensorData) {
         if (!this.isTrained || !this.model) {
-            return {
-                yield: 0,
-                confidence: 0,
-                message: 'Model not trained yet',
-                quality: 'Unknown'
-            };
+            // Fallback prediction based on current sensor conditions
+            return this.fallbackPrediction(currentSensorData);
         }
 
         // Calculate 30-day averages from current data
         const features = this.extractCurrentFeatures(currentSensorData);
         
         if (!features) {
-            return {
-                yield: 0,
-                confidence: 0,
-                message: 'Insufficient current data',
-                quality: 'Unknown'
-            };
+            return this.fallbackPrediction(currentSensorData);
         }
 
         // Debug logging
@@ -528,6 +519,75 @@ class YieldPredictionModel {
             quality: quality,
             features: features
         };
+    }
+
+    fallbackPrediction(currentSensorData) {
+        if (!currentSensorData || currentSensorData.length === 0) {
+            // Provide default prediction based on optimal conditions
+            console.log('🔄 Using default optimal conditions for prediction');
+            const optimalTemp = OPTIMAL_RANGES.temperature.ideal;
+            const optimalHumidity = OPTIMAL_RANGES.humidity.ideal;
+            const optimalSoil = OPTIMAL_RANGES.soilMoisture.ideal;
+            
+            const tempScore = this.calculateRangeScore(optimalTemp, OPTIMAL_RANGES.temperature);
+            const humScore = this.calculateRangeScore(optimalHumidity, OPTIMAL_RANGES.humidity);
+            const soilScore = this.calculateRangeScore(optimalSoil, OPTIMAL_RANGES.soilMoisture);
+            
+            const avgScore = (tempScore + humScore + soilScore) / 3;
+            const baseYield = 10;
+            const predictedYield = baseYield * (0.7 + avgScore * 0.6);
+            
+            return {
+                yield: Math.max(0.1, predictedYield),
+                confidence: Math.round(avgScore * 100),
+                message: `Default prediction: ${predictedYield.toFixed(1)}kg (optimal conditions assumed)`,
+                quality: 'Standard'
+            };
+        }
+
+        // Get latest reading
+        const latest = currentSensorData[currentSensorData.length - 1];
+        const temp = latest.temperature;
+        const humidity = latest.humidity;
+        const soil = latest.avgSoilMoisture;
+
+        if (temp == null || humidity == null || soil == null) {
+            return {
+                yield: 0,
+                confidence: 0,
+                message: 'Incomplete sensor data',
+                quality: 'Unknown'
+            };
+        }
+
+        // Simple rule-based prediction based on optimal ranges
+        const tempScore = this.calculateRangeScore(temp, OPTIMAL_RANGES.temperature);
+        const humScore = this.calculateRangeScore(humidity, OPTIMAL_RANGES.humidity);
+        const soilScore = this.calculateRangeScore(soil, OPTIMAL_RANGES.soilMoisture);
+
+        const avgScore = (tempScore + humScore + soilScore) / 3;
+        
+        // Base yield around 10kg, adjusted by conditions
+        const baseYield = 10;
+        const predictedYield = baseYield * (0.7 + avgScore * 0.6); // Range from 7kg to 13kg
+        
+        const confidence = Math.round(avgScore * 100);
+
+        return {
+            yield: Math.max(0.1, predictedYield),
+            confidence: confidence,
+            message: `Fallback prediction: ${predictedYield.toFixed(1)}kg (${confidence}% confidence)`,
+            quality: avgScore > 0.8 ? 'Good' : avgScore > 0.6 ? 'Standard' : 'Poor'
+        };
+    }
+
+    calculateRangeScore(value, range) {
+        const { min, max, ideal } = range;
+        if (value < min || value > max) return 0; // Outside range
+        if (value === ideal) return 1; // Perfect
+        const distance = Math.abs(value - ideal);
+        const maxDistance = Math.max(ideal - min, max - ideal);
+        return Math.max(0, 1 - (distance / maxDistance));
     }
 
     // Extract features from current sensor data

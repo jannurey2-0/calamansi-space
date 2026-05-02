@@ -8,6 +8,7 @@ import {
     getDocs,
     onSnapshot
 } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-firestore.js";
+import mlModel from './ml-service.js';
 
 const db = getFirestore(app);
 
@@ -260,6 +261,8 @@ class SensorDashboardBase {
         this.dataService = new DataService();
         this.chartController = new ChartController('sensorChart');
         this.latestReadings = null;
+        this.sensorHistory = []; // Store recent sensor readings for ML prediction
+        this.mlModel = mlModel; // ML model for yield prediction
 
         this.ui = {
             temp: document.getElementById('sensor-temp'),
@@ -280,8 +283,19 @@ class SensorDashboardBase {
     loadSensorsFromCache() {
         const cached = localStorage.getItem(this.SENSOR_CACHE_KEY);
         if (cached) {
-            const data = JSON.parse(cached);
-            this.updateCardsAndAI(data, true);
+            try {
+                const data = JSON.parse(cached);
+                if (data && typeof data === 'object') {
+                    console.log('📦 Using cached sensor data:', data);
+                    this.updateCardsAndAI(data, true);
+                } else {
+                    console.log('⚠️ Invalid cached sensor data');
+                }
+            } catch (e) {
+                console.warn('Failed to parse cached sensor data:', e);
+            }
+        } else {
+            console.log('📦 No cached sensor data found');
         }
 
         const cachedChart = localStorage.getItem(this.CHART_CACHE_KEY);
@@ -292,14 +306,54 @@ class SensorDashboardBase {
 
     init() {
         this.initEventListeners();
+        this.loadSensorHistory(); // Load historical data for ML predictions
 
         this.dataService.listenToLatest((data) => {
+            console.log('📡 Received latest sensor data:', data);
             this.latestReadings = data;
             localStorage.setItem(this.SENSOR_CACHE_KEY, JSON.stringify(data));
             this.updateCardsAndAI(data);
         });
 
         this.updateChart('days');
+    }
+
+    async loadSensorHistory() {
+        try {
+            console.log('🔄 Loading sensor history for cache prefix:', this.SENSOR_CACHE_KEY);
+            // Fetch last 30 days of sensor data for ML prediction
+            const q = query(
+                this.dataService.collectionRef,
+                orderBy(DB_CONFIG.fields.time, 'desc'),
+                limit(30 * 24) // Last 30 days assuming hourly readings
+            );
+            
+            console.log('🔍 Executing query for sensor history...');
+            const snapshot = await getDocs(q);
+            console.log('🔍 Query completed, docs found:', snapshot.docs.length);
+            
+            this.sensorHistory = snapshot.docs.map(doc => {
+                const data = doc.data();
+                console.log('🔍 Document data:', data);
+                return data;
+            }).reverse(); // Reverse to chronological order
+            
+            console.log(`📊 Loaded ${this.sensorHistory.length} historical sensor readings for ML prediction`);
+            console.log('📊 Sample sensor data:', this.sensorHistory.slice(0, 2));
+            
+            // Train the ML model if we have enough data
+            if (this.sensorHistory.length >= 10) {
+                console.log('🤖 Training ML model...');
+                await this.mlModel.train();
+                console.log('🤖 ML model training completed');
+            } else {
+                console.log('⚠️ Not enough sensor data for ML training, using fallback predictions');
+            }
+        } catch (error) {
+            console.error('❌ Failed to load sensor history:', error);
+            // Set empty array so fallback can work
+            this.sensorHistory = [];
+        }
     }
 
     initEventListeners() {
@@ -332,7 +386,10 @@ class SensorDashboardBase {
     }
 
     updateCardsAndAI(data, isCached = false) {
-        if (!data) return;
+        if (!data) {
+            console.log('⚠️ No sensor data available for update');
+            return;
+        }
         if (this.ui.temp) this.ui.temp.innerText = `${data[DB_CONFIG.fields.temp] ?? '--'}°C`;
         if (this.ui.hum) this.ui.hum.innerText = `${data[DB_CONFIG.fields.hum] ?? '--'}%`;
         if (this.ui.soil) this.ui.soil.innerText = `${data[DB_CONFIG.fields.soil] ?? '--'}%`;
@@ -350,6 +407,18 @@ class SensorDashboardBase {
         if (soilVal == null || tempVal == null || humVal == null || !this.aiUi.status) return;
 
         const conditions = this.analyzeAllConditions(soilVal, tempVal, humVal);
+        
+        // Get ML yield prediction
+        console.log('🔍 Admin dashboard - sensorHistory length:', this.sensorHistory?.length || 0);
+        console.log('🔍 Admin dashboard - latest sensor data:', data);
+        
+        // Use sensor history if available, otherwise use current reading for fallback
+        let predictionData = this.sensorHistory && this.sensorHistory.length > 0 ? this.sensorHistory : (data ? [data] : []);
+        const yieldPrediction = this.mlModel.predict(predictionData);
+        conditions.yieldPrediction = yieldPrediction;
+        
+        console.log('📊 Admin dashboard - Yield prediction:', yieldPrediction);
+        
         this.updateAIUI(conditions);
     }
 
@@ -583,7 +652,7 @@ class SensorDashboardBase {
 
         this.aiUi.status.innerHTML = `<i class="fa-solid ${icon} ${colorClass} mr-2"></i>${overall.message}`;
         if (this.aiUi.desc) this.aiUi.desc.innerHTML = this.generateConditionSummary(conditions);
-        if (this.aiUi.yield) this.aiUi.yield.innerText = this.calculateYieldImpact(conditions);
+        if (this.aiUi.yield) this.aiUi.yield.innerText = this.getYieldPredictionText(conditions);
         if (this.aiUi.fert) this.aiUi.fert.innerText = this.getFertilizerAdvice(conditions);
     }
 
@@ -638,6 +707,19 @@ class SensorDashboardBase {
             } else {
                 return `ML FERTILIZER ADVISORY: OPTIMAL TIMING (${Math.min(95, avgConfidence + 10)}% certainty) - Conditions ideal for nutrient absorption`;
             }
+        }
+    }
+
+    getYieldPredictionText(conditions) {
+        if (conditions.yieldPrediction && conditions.yieldPrediction.yield > 0) {
+            const yieldKg = conditions.yieldPrediction.yield.toFixed(1);
+            const confidence = conditions.yieldPrediction.confidence;
+            return `${yieldKg} kg/tree (${confidence}% confidence)`;
+        } else if (conditions.yieldPrediction && conditions.yieldPrediction.message) {
+            // Show message for fallback or error cases
+            return conditions.yieldPrediction.message;
+        } else {
+            return '-- kg/tree';
         }
     }
 
