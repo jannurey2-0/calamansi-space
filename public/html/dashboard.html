@@ -284,6 +284,22 @@
                             </div> -->
                         </div>
                     </div>
+
+                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+                        <div class="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
+                            <div>
+                                <h3 class="text-lg font-bold text-slate-800">Predicted vs Actual Yield</h3>
+                                <p class="text-sm text-slate-500">Quarterly comparison of ML predictions vs actual harvest data.</p>
+                            </div>
+                        </div>
+
+                        <div class="relative h-72 w-full">
+                            <canvas id="yieldComparisonChart"></canvas>
+                        </div>
+                        <div class="mt-4 text-xs text-slate-500" id="yield-comparison-meta">
+                            Loading quarterly yield comparison from database...
+                        </div>
+                    </div>
                 </div>
             </div>
         </main>
